@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Coach — free résumé, cover letter & interview help</title>
+<meta name="description" content="A private, free career coach in your browser. Turn a weak résumé bullet into a strong one, draft a tailored cover letter, and rehearse interview answers. No account, nothing saved, nothing sent.">
+<style>
+  :root{
+    --green:#0f5a34; --green-deep:#0a3d24; --gold:#a9780a; --gold-bright:#c99a2e;
+    --paper:#faf8f0; --card:#fff; --ink:#182219; --muted:#586459; --line:#e4dfce;
+    --serif:"Iowan Old Style",Palatino,Georgia,serif; --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; --mono:ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){:root{--green:#3fa06a;--green-deep:#0c3b23;--gold:#d7b552;--gold-bright:#e6c766;--paper:#141c16;--card:#1a241d;--ink:#e9efe9;--muted:#9aab9e;--line:#2a362d;}}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.55;font-size:17px}
+  .band{height:10px;background:linear-gradient(90deg,var(--green),var(--gold-bright),var(--green))}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  header{padding:34px 0 10px}
+  h1{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.4rem);margin:.2em 0;color:var(--green-deep)}
+  @media(prefers-color-scheme:dark){h1{color:#d7e6db}}
+  .lede{color:var(--muted);max-width:60ch}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 6px}
+  .tab{border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:9px 15px;border-radius:999px;font:inherit;font-size:.92rem;cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+  @media(prefers-color-scheme:dark){.tab[aria-selected="true"]{color:#08130c}}
+  .panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:12px}
+  .panel.on{display:block}
+  label{display:block;font-weight:600;margin:14px 0 5px;font-size:.95rem}
+  .hint{font-weight:400;color:var(--muted);font-size:.85rem}
+  input,textarea,select{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:inherit}
+  textarea{min-height:80px;resize:vertical}
+  .btn{background:var(--green);color:#fff;border:none;padding:12px 20px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;margin-top:16px}
+  @media(prefers-color-scheme:dark){.btn{color:#08130c}}
+  .btn:hover{background:var(--green-deep)}
+  .out{margin-top:18px;border-top:2px solid var(--gold);padding-top:16px;display:none}
+  .out.on{display:block}
+  .out h3{font-family:var(--serif);margin:.2em 0}
+  pre{white-space:pre-wrap;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:14px;font-family:var(--mono);font-size:.85rem}
+  .copy{background:var(--gold);color:#1a1305;border:none;padding:8px 14px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+  ul.check{padding-left:0;list-style:none}
+  ul.check li{padding:6px 0 6px 26px;position:relative}
+  ul.check li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
+  footer{color:var(--muted);font-size:.85rem;padding:30px 0 50px}
+  a{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="band"></div>
+<div class="wrap">
+  <header>
+    <h1>Job Coach</h1>
+    <p class="lede">A private career coach in your browser. It builds you an expert-grade, ready-to-paste request you can drop into any AI (ChatGPT, Claude, Gemini) — plus the frameworks a $150/hr coach would walk you through. <b>Nothing is saved or sent; it all runs on your device.</b></p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-t="resume">Résumé bullet</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="cover">Cover letter</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="interview">Interview prep</button>
+  </div>
+
+  <!-- RESUME -->
+  <section class="panel on" id="resume">
+    <p class="hint">Great bullets follow <b>Action → Result → How</b>, with a number wherever possible. Give me a weak line and I'll build the rewrite.</p>
+    <label>The role you're targeting <span class="hint">(e.g. "Operations Manager")</span></label>
+    <input id="r-role" placeholder="Operations Manager">
+    <label>A weak or plain bullet you want to improve</label>
+    <textarea id="r-bullet" placeholder="Responsible for managing the team's schedule and orders."></textarea>
+    <label>Any numbers you know <span class="hint">(team size, %, $, time saved — even rough)</span></label>
+    <input id="r-metrics" placeholder="team of 8; cut order errors ~30%; saved ~5 hrs/week">
+    <button class="btn" data-go="resume">Build my rewrite</button>
+    <div class="out" id="resume-out"></div>
+  </section>
+
+  <!-- COVER -->
+  <section class="panel" id="cover">
+    <label>Job title & company</label>
+    <input id="c-job" placeholder="Marketing Coordinator at Northwind">
+    <label>Why you're a fit <span class="hint">(2–3 things: skills, a win, why this company)</span></label>
+    <textarea id="c-fit" placeholder="Ran social for a small brand and grew it 3x; love their sustainability angle; strong writer."></textarea>
+    <label>Anything to address? <span class="hint">(career gap, switching fields — optional)</span></label>
+    <input id="c-flag" placeholder="Switching from teaching to marketing">
+    <button class="btn" data-go="cover">Build my cover-letter request</button>
+    <div class="out" id="cover-out"></div>
+  </section>
+
+  <!-- INTERVIEW -->
+  <section class="panel" id="interview">
+    <label>The role you're interviewing for</label>
+    <input id="i-role" placeholder="Customer Success Manager">
+    <label>A strength you want to land <span class="hint">(and one weakness you're ready for)</span></label>
+    <input id="i-strength" placeholder="I'm great at calming upset customers">
+    <button class="btn" data-go="interview">Build my prep pack</button>
+    <div class="out" id="interview-out"></div>
+  </section>
+
+  <footer>
+    Free and private. Built by Mick Hume — simple AI tools that work, no hype. This is a coaching aid, not a guarantee of employment.
+  </footer>
+</div>
+
+<script>
+function esc(s){return (s||"").trim();}
+function copyBtn(text){
+  const id="c"+Math.random().toString(36).slice(2);
+  setTimeout(()=>{const b=document.getElementById(id);if(b)b.onclick=()=>{navigator.clipboard.writeText(text);b.textContent="Copied ✓";setTimeout(()=>b.textContent="Copy the request",1400);};},0);
+  return `<button class="copy" id="${id}">Copy the request</button>`;
+}
+const tabs=[...document.querySelectorAll('.tab')];
+tabs.forEach(t=>t.onclick=()=>{
+  tabs.forEach(x=>x.setAttribute('aria-selected',x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===t.dataset.t));
+});
+
+function show(id,html){const o=document.getElementById(id);o.innerHTML=html;o.classList.add('on');o.scrollIntoView({behavior:'smooth',block:'nearest'});}
+
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.go;
+  if(k==='resume'){
+    const role=esc(r_role.value)||"the role", bullet=esc(r_bullet.value), metrics=esc(r_metrics.value);
+    if(!bullet){alert("Paste a bullet to improve.");return;}
+    const prompt=`You are an expert résumé writer. Rewrite this bullet for a "${role}" résumé.\nRules: start with a strong past-tense action verb; lead with the RESULT; include a number if any are given; keep it to one line; no fluff words ("responsible for", "helped with").\n\nWeak bullet: "${bullet}"\nNumbers I have: ${metrics||"(none given — use a placeholder like [X%] I can fill in)"}\n\nGive me 3 versions, strongest first, and tell me which number would make each one hit harder.`;
+    show('resume-out',`<h3>Paste this into any AI</h3><pre>${prompt.replace(/</g,'&lt;')}</pre>${copyBtn(prompt)}
+      <h3 style="margin-top:18px">The formula (so you can do the next one yourself)</h3>
+      <ul class="check"><li><b>Action</b> — strong verb: Led, Cut, Built, Grew, Saved.</li><li><b>Result</b> — the outcome, with a number: "cut errors 30%".</li><li><b>How</b> — briefly, the method or scope: "by redesigning the order flow for a team of 8".</li></ul>`);
+  }
+  if(k==='cover'){
+    const job=esc(c_job.value)||"the role", fit=esc(c_fit.value), flag=esc(c_flag.value);
+    if(!fit){alert("Tell me why you're a fit.");return;}
+    const prompt=`You are a warm, concise cover-letter writer. Draft a 3-paragraph cover letter for: ${job}.\nUse ONLY the facts below — do not invent experience.\nParagraph 1: a specific hook about why this company/role. P2: my strongest proof points. P3: a confident, low-pressure close.\nTone: genuine, plain-spoken, no clichés ("I am writing to express my interest").\n\nWhy I'm a fit: ${fit}\n${flag?`Address gracefully (turn it into a strength): ${flag}\n`:''}Keep it under 250 words. Then list 2 things I could add to make it stronger.`;
+    show('cover-out',`<h3>Paste this into any AI</h3><pre>${prompt.replace(/</g,'&lt;')}</pre>${copyBtn(prompt)}
+      <h3 style="margin-top:18px">Before you send</h3>
+      <ul class="check"><li>Cut every sentence that could appear on anyone's letter.</li><li>Name the company and one specific thing about it.</li><li>Read it aloud — if it sounds like a robot, it reads like one.</li></ul>`);
+  }
+  if(k==='interview'){
+    const role=esc(i_role.value)||"the role", str=esc(i_strength.value);
+    const prompt=`Act as a hiring manager interviewing me for: ${role}.\n1) List the 8 most likely questions for this specific role (mix of behavioral + role-specific).\n2) For the top 3, give me a STAR scaffold (Situation, Task, Action, Result) I can fill in.\n3) Then ask me the first question and wait for my answer, so we can rehearse one at a time.\n${str?`Something I want to land: ${str}`:''}`;
+    show('interview-out',`<h3>Paste this into any AI to run a mock interview</h3><pre>${prompt.replace(/</g,'&lt;')}</pre>${copyBtn(prompt)}
+      <h3 style="margin-top:18px">Answer every question with STAR</h3>
+      <ul class="check"><li><b>S</b>ituation — set the scene in one sentence.</li><li><b>T</b>ask — what you needed to do.</li><li><b>A</b>ction — what <i>you</i> did (not "we").</li><li><b>R</b>esult — how it turned out, with a number.</li></ul>`);
+  }
+});
+</script>
+</body>
+</html>
