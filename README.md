@@ -4,4 +4,4 @@ A free, private career coach in your browser. Improve a résumé bullet, draft a
 
 **Live:** mpacarroll.github.io/career-coach/tool/ · **Tool:** `tool/index.html` (self-contained, no account, nothing saved or sent).
 
-Part of Mick Watts's free tools — *the professionals you can't afford, made free and plain.* No finance advice; a coaching aid, not a guarantee of employment. Not affiliated with any employer.
+Part of Mick Cairn's free tools — *the professionals you can't afford, made free and plain.* No finance advice; a coaching aid, not a guarantee of employment. Not affiliated with any employer.
