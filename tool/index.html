@@ -44,6 +44,19 @@
   ul.check li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
   footer{color:var(--muted);font-size:.85rem;padding:30px 0 50px}
   a{color:var(--green)}
+
+  /* --- funnel CTA (shared across tools) --- */
+  .mc-cta{margin:34px 0 8px;padding:20px 22px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px}
+  .mc-cta h3{font-family:var(--serif);font-size:1.15rem;margin:0 0 4px;color:var(--green)}
+  .mc-cta p{margin:0 0 12px;color:var(--muted);font-size:.94rem}
+  .mc-form{display:flex;gap:8px;flex-wrap:wrap;margin:0}
+  .mc-form input[type=email]{flex:1;min-width:200px;padding:11px;border:1.5px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:inherit}
+  .mc-form button{background:var(--green);color:#fff;border:none;padding:11px 18px;border-radius:9px;font:inherit;font-weight:600;cursor:pointer}
+  .mc-form button:hover{background:var(--green-deep)}
+  .mc-hp{position:absolute;left:-9999px;width:1px;height:1px}
+  .mc-msg{width:100%;margin:8px 0 0;font-size:.9rem;font-weight:600;color:var(--green)}
+  .mc-more{margin:12px 0 0;font-size:.9rem}
+  .mc-more a{color:var(--green);font-weight:600}
 </style>
 </head>
 <body>
@@ -95,6 +108,18 @@
     <div class="out" id="interview-out"></div>
   </section>
 
+
+  <section class="mc-cta">
+    <h3>One useful thing a week</h3>
+    <p>Free tools and plain-language AI. No hype, nothing to sell you first.</p>
+    <form class="mc-form" data-source="job-coach" novalidate>
+      <input type="email" name="email" placeholder="you@example.com" aria-label="Your email address" required>
+      <input type="text" name="website" class="mc-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <button type="submit">Send it to me</button>
+      <p class="mc-msg" role="status"></p>
+    </form>
+    <p class="mc-more"><a href="https://mpacarroll.github.io/ai-mick/">See all the free tools &rarr;</a></p>
+  </section>
   <footer>
     Free and private. Built by Mick Cairn — simple AI tools that work, no hype. This is a coaching aid, not a guarantee of employment.
   </footer>
@@ -141,6 +166,28 @@ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
       <ul class="check"><li><b>S</b>ituation — set the scene in one sentence.</li><li><b>T</b>ask — what you needed to do.</li><li><b>A</b>ction — what <i>you</i> did (not "we").</li><li><b>R</b>esult — how it turned out, with a number.</li></ul>`);
   }
 });
+</script>
+
+<script>
+(function(){
+  var f=document.querySelector('.mc-form'); if(!f) return;
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var msg=f.querySelector('.mc-msg'), btn=f.querySelector('button');
+    var email=(f.email.value||'').trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent='Please enter a valid email.'; return; }
+    if(f.website.value){ msg.textContent='Thanks — you\u2019re on the list.'; return; }
+    btn.disabled=true; msg.textContent='Adding you\u2026';
+    fetch('https://join.micksfairdinkumai.com/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email,source:f.dataset.source})})
+      .then(function(r){return r.json().catch(function(){return {ok:r.ok};});})
+      .then(function(d){
+        if(d && d.ok){ msg.textContent='Thanks \u2014 you\u2019re on the list.'; f.email.value=''; }
+        else { msg.textContent=(d && d.error) ? d.error : 'Something went wrong. Try again.'; btn.disabled=false; }
+      })
+      .catch(function(){ msg.textContent='Could not reach the server. Try again shortly.'; btn.disabled=false; });
+  });
+})();
 </script>
 </body>
 </html>
