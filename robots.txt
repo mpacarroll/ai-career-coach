@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mpacarroll.github.io/ai-career-coach/sitemap.xml
