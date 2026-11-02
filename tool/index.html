@@ -136,7 +136,7 @@
 <div class="wrap">
   <header class="intro">
     <h1>Job Coach</h1>
-    <p class="lede">A private career coach in your browser. It builds an expert-grade, ready-to-paste request you can drop into any AI (ChatGPT, Claude, Gemini), plus the frameworks a $150/hr coach would walk you through. <b>Nothing is saved or sent; it all runs on your device.</b></p>
+    <p class="lede">A private career coach in your browser. It builds an expert-grade, ready-to-paste request you can drop into any AI you already use, plus the frameworks a good career coach would walk you through. <b>Nothing is saved or sent; it all runs on your device.</b></p>
   </header>
 
   <div class="tabs" role="tablist">
@@ -153,8 +153,8 @@
     <input id="r-role" placeholder="Operations Manager">
     <label>A weak or plain bullet you want to improve</label>
     <textarea id="r-bullet" placeholder="Responsible for managing the team's schedule and orders."></textarea>
-    <label>Any numbers you know <span class="hint">(team size, %, $, time saved, even rough)</span></label>
-    <input id="r-metrics" placeholder="team of 8; cut order errors ~30%; saved ~5 hrs/week">
+    <label>Any numbers you know <span class="hint">(team size, percentages, time saved, even rough)</span></label>
+    <input id="r-metrics" placeholder="team of 8; fewer order errors; about an afternoon a week saved">
     <button class="btn" data-go="resume">Build my rewrite</button>
     <div class="out" id="resume-out"></div>
   </section>
@@ -165,7 +165,7 @@
     <label>Job title & company</label>
     <input id="c-job" placeholder="Marketing Coordinator at Northwind">
     <label>Why you're a fit <span class="hint">(two or three things: skills, a win, why this company)</span></label>
-    <textarea id="c-fit" placeholder="Ran social for a small brand and grew it 3x; love their sustainability angle; strong writer."></textarea>
+    <textarea id="c-fit" placeholder="Ran social for a small brand for two years; love their sustainability angle; strong writer."></textarea>
     <label>Anything to address? <span class="hint">(career gap or switching fields; optional)</span></label>
     <input id="c-flag" placeholder="Switching from teaching to marketing">
     <button class="btn" data-go="cover">Build my cover-letter request</button>
@@ -245,8 +245,8 @@ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>build(b.dataset.
 
 // Open on a worked example so the first view shows what the tool makes.
 const EXAMPLES={
-  resume:{'r-role':'Operations Manager','r-bullet':"Responsible for managing the team's schedule and orders.",'r-metrics':'team of 8; cut order errors ~30%; saved ~5 hrs/week'},
-  cover:{'c-job':'Marketing Coordinator at Northwind','c-fit':'Ran social for a small brand and grew it 3x; love their sustainability angle; strong writer.','c-flag':'Switching from teaching to marketing'},
+  resume:{'r-role':'Operations Manager','r-bullet':"Responsible for managing the team's schedule and orders.",'r-metrics':'team of 8; fewer order errors; about an afternoon a week saved'},
+  cover:{'c-job':'Marketing Coordinator at Northwind','c-fit':'Ran social for a small brand for two years; love their sustainability angle; strong writer.','c-flag':'Switching from teaching to marketing'},
   interview:{'i-role':'Customer Success Manager','i-strength':"I'm great at calming upset customers"}
 };
 Object.keys(EXAMPLES).forEach(k=>{Object.entries(EXAMPLES[k]).forEach(([id,v])=>{$(id).value=v;});build(k,true);});
