@@ -439,15 +439,20 @@ export function traceReport(ws, versionId) {
   return { versionId, lines, summary, counts, total, clean: counts.unsupported === 0 && counts.untraced === 0 };
 }
 
-// Word-level diff (LCS). Returns [{ op: 'same'|'add'|'del', text }].
+// Word-level diff (LCS) on words only, so whitespace never pairs unrelated words.
+// Returns [{ op: 'same'|'add'|'del', text }]; each text carries its own spacing.
 export function wordDiff(a, b) {
-  const A = String(a || '').split(/(\s+)/).filter(Boolean);
-  const B = String(b || '').split(/(\s+)/).filter(Boolean);
+  const A = String(a || '').split(/\s+/).filter(Boolean);
+  const B = String(b || '').split(/\s+/).filter(Boolean);
   const n = A.length, m = B.length;
   const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
   for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
   const out = [];
-  const push = (op, text) => { const last = out[out.length - 1]; if (last && last.op === op) last.text += text; else out.push({ op, text }); };
+  const push = (op, word) => {
+    const last = out[out.length - 1];
+    if (last && last.op === op) last.text += ` ${word}`;
+    else { if (last) last.text += ' '; out.push({ op, text: word }); }
+  };
   let i = 0, j = 0;
   while (i < n && j < m) {
     if (A[i] === B[j]) { push('same', A[i]); i++; j++; }

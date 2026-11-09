@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Search Workspace</title>
+<meta name="description" content="A private job-search workspace in your browser. Keep an evidence library, tailor resume versions where every line traces to your own experience, track applications, practice interviews and draft follow-ups. Saved only on this device.">
+<link rel="canonical" href="https://mpacarroll.github.io/ai-career-coach/workspace/">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232b2e33'/><ellipse cx='16' cy='24' rx='10' ry='4' fill='%23d08a2c'/><ellipse cx='16' cy='16' rx='7' ry='3.4' fill='%23cfc8b8'/><ellipse cx='16' cy='9' rx='4' ry='2.6' fill='%232e8c5c'/></svg>">
+<style>
+  /* Mick Cairn house look, shared with ../tool/. Fonts are self-hosted in ../assets/fonts. */
+  @font-face{font-family:"Young Serif";src:url("../assets/fonts/young-serif-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Atkinson Hyperlegible";src:url("../assets/fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Atkinson Hyperlegible";src:url("../assets/fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2");font-weight:700;font-display:swap}
+  :root{
+    --char:#2b2e33; --ochre:#d08a2c; --green:#1d6b44; --green-deep:#14502f; --red:#a3341f; --amber:#8a5a00;
+    --stone:#e7e5e0; --sheet:#fbfaf7; --card:#ffffff; --ink:#1f2124; --muted:#5d5f63; --line:#d6d3cc;
+    --on-char:#efe6d2; --ins:#d9eedf; --del:#f6dcd5;
+    --display:"Young Serif",Georgia,"Times New Roman",serif;
+    --sans:"Atkinson Hyperlegible",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ochre:#e09a3c; --green:#5bb585; --green-deep:#7cc9a0; --red:#f08a73; --amber:#e6b450;
+    --stone:#121315; --sheet:#1b1d20; --card:#202327; --ink:#ecebe7; --muted:#a5a6a8; --line:#33363b;
+    --ins:#1f3a2a; --del:#46261f;
+  }}
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;font-family:var(--sans);background:var(--sheet);color:var(--ink);line-height:1.5;font-size:16px;-webkit-font-smoothing:antialiased}
+  a{color:var(--green)}
+  :focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .mc-top{background:var(--char);color:var(--on-char)}
+  .mc-top::after{content:"";display:block;height:18px;background-color:var(--char);border-top:2px solid var(--ochre);
+    background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.32) 0 14px,transparent 14px 40px),repeating-linear-gradient(0deg,rgba(0,0,0,.32) 0 14px,transparent 14px 40px),repeating-linear-gradient(90deg,transparent 0 24px,rgba(208,138,44,.8) 24px 28px,transparent 28px 40px),repeating-linear-gradient(0deg,transparent 0 24px,rgba(208,138,44,.8) 24px 28px,transparent 28px 40px)}
+  .mc-bar{display:flex;align-items:center;gap:14px;min-height:60px}
+  .mc-mark{display:flex;align-items:center;gap:10px;color:var(--on-char);text-decoration:none;margin-right:auto}
+  .mc-mark b{display:block;font-family:var(--display);font-weight:400;font-size:1.2rem;line-height:1.1}
+  .mc-mark small{display:block;font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;opacity:.8}
+  .mc-all{color:var(--on-char);text-decoration:none;font-size:.9rem;opacity:.9}
+
+  header.intro{padding:24px 0 0}
+  h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.15}
+  h1{font-size:clamp(1.8rem,4vw,2.4rem);margin:0 0 .2em}
+  h2{font-size:1.45rem;margin:0 0 .5em}
+  h3{font-size:1.15rem;margin:1.2em 0 .45em}
+  .lede{color:var(--muted);max-width:70ch;margin:0}
+  .muted{color:var(--muted)}
+  .small{font-size:.86rem}
+  .tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase}
+
+  nav.main{display:flex;gap:2px;flex-wrap:wrap;margin:18px 0 0;border-bottom:1px solid var(--line)}
+  nav.main a,.subnav a{color:var(--muted);text-decoration:none;font-weight:700;padding:10px 14px;border-bottom:3px solid transparent;margin-bottom:-1px;font-size:.94rem}
+  nav.main a[aria-current="page"],.subnav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--green)}
+  .subnav{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:4px 0 16px;overflow-x:auto}
+  .subnav a{padding:8px 11px;font-size:.88rem}
+
+  .banner{margin:14px 0 0;padding:10px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);font-size:.93rem}
+  .banner.warn{border-left:4px solid var(--ochre)}
+  .banner.err{border-left:4px solid var(--red)}
+  .banner.demo{border-left:4px solid var(--green)}
+  .banner button{margin-left:8px}
+
+  main{padding:18px 0 40px;min-height:50vh}
+  .grid2{display:grid;gap:24px}
+  @media (min-width:900px){.grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:0 0 12px;min-width:0}
+  .card.accent{border-top:4px solid var(--green)}
+  .card h3:first-child,.card h2:first-child{margin-top:0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .spread{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+
+  label{display:block;font-weight:700;margin:10px 0 4px;font-size:.92rem}
+  input,textarea,select{width:100%;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--stone);color:var(--ink);font:inherit;font-size:.95rem}
+  textarea{min-height:70px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--green);outline-offset:1px;border-color:var(--green)}
+  .btn{display:inline-flex;align-items:center;gap:6px;background:var(--char);color:var(--on-char);border:0;border-bottom:3px solid var(--green);padding:8px 14px;border-radius:6px;font:inherit;font-weight:700;font-size:.92rem;cursor:pointer;text-decoration:none}
+  @media (prefers-color-scheme:dark){.btn{background:#3a3e44}}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);border-bottom-width:3px}
+  .btn.danger{background:transparent;color:var(--red);border:1.5px solid var(--red)}
+  .btn.small{padding:4px 9px;font-size:.82rem;border-bottom-width:2px}
+  .linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--green);text-decoration:underline;cursor:pointer}
+
+  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .col{background:var(--stone);border-radius:8px;padding:8px;min-height:90px}
+  .col h3{font-family:var(--sans);font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;margin:2px 4px 8px;color:var(--muted)}
+  .jobcard{display:block;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0 0 6px;color:var(--ink);text-decoration:none;font-size:.9rem}
+  .jobcard b{display:block}
+  .jobcard:hover{border-color:var(--green)}
+
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 0}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;padding:2px 8px;border-radius:999px;background:var(--stone);border:1px solid var(--line)}
+  .chip.ok{border-color:var(--green);color:var(--green)}
+  .chip.gap{border-color:var(--ochre);color:var(--amber)}
+  .chip button{background:none;border:0;color:inherit;cursor:pointer;padding:0 0 0 2px;font-size:.9rem;line-height:1}
+
+  .status{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap}
+  .status.traced{background:var(--ins);color:var(--green-deep)}
+  .status.unsupported{background:var(--del);color:var(--red)}
+  .status.untraced{background:var(--del);color:var(--red)}
+  .issues{margin:4px 0 0;padding-left:18px;color:var(--red);font-size:.86rem}
+
+  .bullet{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0 0 8px;background:var(--card)}
+  .bullet textarea{min-height:52px}
+  .meter{height:10px;background:var(--stone);border-radius:6px;overflow:hidden}
+  .meter i{display:block;height:100%;background:var(--green)}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  ins{background:var(--ins);text-decoration:none;border-radius:2px}
+  del{background:var(--del);border-radius:2px}
+  pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--stone);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:.82rem}
+  .packet{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px 24px}
+  .packet h1{font-size:1.5rem}
+  .packet h2{font-size:1.2rem;margin-top:1.2em;border-bottom:1px solid var(--line);padding-bottom:4px}
+  .checks{list-style:none;padding:0;margin:6px 0}
+  .checks li{padding:3px 0 3px 24px;position:relative;font-size:.92rem}
+  .checks li::before{position:absolute;left:0;font-weight:700}
+  .checks li.pass::before{content:"\2713";color:var(--green)}
+  .checks li.fail::before{content:"\2715";color:var(--red)}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--char);color:var(--on-char);padding:9px 16px;border-radius:6px;font-weight:700;font-size:.9rem;z-index:10}
+  footer{color:var(--muted);font-size:.85rem;padding:20px 0 48px;border-top:1px solid var(--line)}
+  @media print{
+    .mc-top,nav,.subnav,.banner,footer,header.intro,.noprint{display:none!important}
+    body{background:#fff;color:#000}
+    .packet{border:0;padding:0}
+  }
+</style>
+</head>
+<body>
+<header class="mc-top"><div class="wrap mc-bar">
+  <a class="mc-mark" href="https://mpacarroll.github.io/ai-mick/" aria-label="Mick Cairn, all free tools">
+    <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="26" rx="12" ry="4.2" fill="#d08a2c"/><ellipse cx="16" cy="18.6" rx="8.6" ry="3.8" fill="#cfc8b8"/><ellipse cx="15.4" cy="12" rx="5.6" ry="3.1" fill="#d08a2c"/><ellipse cx="16.2" cy="6.6" rx="3.2" ry="2.3" fill="#2e8c5c"/></svg>
+    <span><b>Mick Cairn</b><small>Free tools</small></span>
+  </a>
+  <a class="mc-all" href="../tool/">Quick Job Coach</a>
+</div></header>
+<div class="wrap">
+  <header class="intro">
+    <h1>Job Search Workspace</h1>
+    <p class="lede">Keep the evidence of what you have done, then build each application from it: tailored resume versions, a cover letter, interview practice and follow-up drafts. Every claim points back to something you wrote. <b>Saved only in this browser. Nothing is sent anywhere.</b></p>
+  </header>
+  <nav class="main" aria-label="Workspace">
+    <a href="#/pipeline" data-nav="pipeline">Pipeline</a>
+    <a href="#/evidence" data-nav="evidence">Evidence library</a>
+    <a href="#/roles" data-nav="roles">Roles</a>
+    <a href="#/data" data-nav="data">Profile and data</a>
+  </nav>
+  <div id="banners" aria-live="polite"></div>
+  <main id="view" tabindex="-1"></main>
+  <footer>
+    Free and private. Your workspace lives in this browser's storage on this device; export it to keep a copy or move it. Job Coach never sends an application or a message for you. A coaching aid, not a guarantee of employment.
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
