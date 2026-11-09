@@ -207,6 +207,38 @@ test('export, damaged storage recovery, and import round trip', async () => {
   await ctx.close();
 });
 
+test('scope check catches inflated ownership and reach, and marks added words', async () => {
+  const { ctx, page, errors, external } = await newPage();
+  await page.goto(`${base}#/role/job_demo_tallgrass/resume`);
+  await page.getByRole('button', { name: /^v1 first pass/ }).click();
+  await page.getByText('"Founded" claims more authorship than the cited evidence').waitFor();
+  await page.getByText('"school-wide" claims reach or recognition').waitFor();
+
+  await page.getByRole('button', { name: /^v2 tailored/ }).click();
+  await page.getByText('Every line traces').waitFor();
+  const first = page.locator('.bullet textarea').first();
+  const original = await first.inputValue();
+  await editAndBlur(page, first, 'Founded a district-wide onboarding program for a new attendance system, training 30 teachers.');
+  await page.getByText('"Founded" claims more authorship than the cited evidence').waitFor();
+  await page.getByText('"district-wide" claims reach or recognition').waitFor();
+  const marks = await page.locator('.bullet').first().locator('.grounding mark').allInnerTexts();
+  assert.ok(marks.includes('founded') && marks.includes('program'), `marked: ${marks.join(', ')}`);
+  await shot(page, '09-scope-flag');
+
+  // The packet lists the scope problem under "check before sending".
+  await page.goto(`${base}#/role/job_demo_tallgrass/packet`);
+  await page.getByText(/thing.* to fix before you send/).waitFor();
+  assert.match(await page.locator('main').innerText(), /Founded/);
+
+  // Putting the evidence's own verb back clears it.
+  await page.goto(`${base}#/role/job_demo_tallgrass/resume`);
+  await editAndBlur(page, page.locator('.bullet textarea').first(), original);
+  await page.getByText('Every line traces').waitFor();
+  assert.deepEqual(errors, []);
+  assert.deepEqual(external, []);
+  await ctx.close();
+});
+
 test('blocked storage still works for the session and says so', async () => {
   const { ctx, page, errors } = await newPage();
   await page.addInitScript(() => {

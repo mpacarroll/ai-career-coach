@@ -9,7 +9,14 @@ Two free, private tools in your browser, part of Mick Cairn's free tools.
 
 ## The trace rule
 
-Every resume line, cover-letter proof paragraph and practice answer cites evidence items. A line is flagged when it cites nothing, cites deleted evidence, or contains a number or credential word (certified, licensed, degree, MBA and similar) that does not appear in the evidence it cites. Drafted lines and letters are assembled only from the user's own words. There is no model call, no scraping, and nothing is ever sent: follow-ups are drafts the user copies.
+Every resume line, cover-letter proof paragraph and practice answer cites evidence items. A line is flagged when it cites nothing, cites deleted evidence, or contains a number or credential word (certified, licensed, degree, MBA and similar) that does not appear in the evidence it cites.
+
+A line is also flagged when it claims more scope than its evidence (the scope check):
+
+- **Ownership and authorship ladders.** "Ran" < "led, managed, responsible for"; "built, designed, wrote" < "founded, established, pioneered". A claim needs an evidence word on the same ladder at the same rung or higher. "Helped lead" in the evidence counts as support, not leadership.
+- **Reach and recognition words** ("company-wide", any "-wide", "global", "award-winning", "promoted", "senior" and similar) must appear in the cited evidence itself.
+
+Each line also lists the words it adds beyond its cited evidence. That list is informational and never fails a line; it shows the person exactly what they added. Drafted lines and letters are assembled only from the user's own words. There is no model call, no scraping, and nothing is ever sent: follow-ups are drafts the user copies.
 
 ## Layout
 
@@ -33,7 +40,7 @@ node tests/e2e/serve.mjs 8787
 # open http://localhost:8787/workspace/
 ```
 
-The first visit opens on a made-up candidate, Jordan Reyes, partway through a search: a role at Interviewing with two resume versions (v1 has a flagged overreach, v2 is clean), a cover letter, a practiced answer, a debrief and a thank-you draft. "Clear the demo and start fresh" gives an empty workspace.
+The first visit opens on a made-up candidate, Jordan Reyes, partway through a search: a role at Interviewing with two resume versions (v1 has two flagged overreaches, one on numbers and credentials and one on scope; v2 is clean), a cover letter, a practiced answer, a debrief and a thank-you draft. "Clear the demo and start fresh" gives an empty workspace.
 
 ## Tests
 

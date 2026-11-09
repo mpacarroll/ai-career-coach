@@ -130,7 +130,7 @@ test('compareVersions on the demo pairs edited bullets and lists added and remov
   const ws = buildDemoWorkspace();
   const [v1, v2] = ws.resumeVersions;
   const cmp = c.compareVersions(ws, v1.id, v2.id);
-  assert.equal(cmp.a.trace.unsupported, 1);
+  assert.equal(cmp.a.trace.unsupported, 2);
   assert.equal(cmp.b.trace.unsupported, 0);
   assert.ok(cmp.removed.some(r => /Certified/.test(r.text) && r.status === 'unsupported'));
   assert.ok(cmp.changed.length >= 2);
@@ -337,4 +337,65 @@ test('a damaged import with null and mistyped nested records loads and renders d
   assert.equal(c.coverLetterTrace(ws, ws.coverLetters[0]).length, 1);
   assert.ok(c.buildPacket(ws, 'j1').markdown.includes('Role at Co'));
   assert.ok(c.pipelineSummary(ws).nextSteps.length >= 1);
+});
+
+// ---- Scope check and grounding
+
+test('scope: a claim may not climb the ownership ladder past its evidence', () => {
+  const ev = 'Helped lead onboarding for the new attendance system and wrote the how-to guide.';
+  assert.deepEqual(c.scopeIssues('Led onboarding for the new attendance system.', ev).map(i => i.word), ['led']);
+  assert.deepEqual(c.scopeIssues('Wrote the how-to guide.', ev), []);
+  assert.deepEqual(c.scopeIssues('Built the how-to guide.', ev), [], 'same rung on the creation ladder');
+  assert.deepEqual(c.scopeIssues('Founded the training program.', ev).map(i => i.word), ['founded']);
+  assert.deepEqual(c.scopeIssues('Ran the front desk.', 'Responsible for the front desk.'), [], 'responsible for covers ran');
+  assert.deepEqual(c.scopeIssues('Managed the front desk.', 'Ran the front desk.').map(i => i.word), ['managed']);
+  assert.match(c.scopeIssues('Managed the front desk.', 'Ran the front desk.')[0].detail, /more ownership/);
+  assert.match(c.scopeIssues('Led the team.', 'Answered phones.')[0].detail, /does not describe/);
+});
+
+test('scope: reach and recognition words must appear in the evidence', () => {
+  const ev = 'Redesigned the order workflow for the front office.';
+  assert.deepEqual(c.scopeIssues('Redesigned the order workflow district-wide.', ev).map(i => i.word), ['district-wide']);
+  assert.deepEqual(c.scopeIssues('Award-winning order workflow.', ev).map(i => i.word), ['award-winning']);
+  assert.deepEqual(c.scopeIssues('Redesigned the company-wide workflow.', 'Redesigned the company-wide workflow.'), []);
+});
+
+test('scope issues make a cited line unsupported and show in the packet', () => {
+  const ws = buildDemoWorkspace();
+  const [v1] = ws.resumeVersions;
+  const tr = c.traceReport(ws, v1.id);
+  const founded = tr.lines.find(l => /Founded/.test(l.text));
+  assert.equal(founded.status, 'unsupported');
+  assert.deepEqual(founded.issues.filter(i => i.kind === 'scope').map(i => i.word), ['founded', 'school-wide']);
+  assert.equal(founded.issues.filter(i => i.kind === 'number').length, 0, '"4 hours" is in the evidence');
+  const packet = c.buildPacket(ws, 'job_demo_tallgrass', v1.id);
+  assert.ok(packet.problems.some(p => /Founded/.test(p) && /school-wide/.test(p)));
+});
+
+test('grounding lists the words a line adds to its evidence, without failing it', () => {
+  const g = c.groundingReport('Led the company turnaround for clinics.', 'Led onboarding for 30 clinics.');
+  assert.deepEqual(g.newWords, ['company', 'turnaround']);
+  assert.equal(g.share, 0.5);
+  assert.deepEqual(c.groundingReport('Trained teachers.', 'Ran training for 30 teachers.').newWords, [], 'stems match');
+  assert.equal(c.groundingReport('the and of', 'x').share, null);
+  const { ws, ev } = smallWs();
+  const r = c.checkClaim('Ran the support ticket queue with flair.', [ev.id], ws);
+  assert.equal(r.status, 'traced');
+  assert.deepEqual(r.grounding.newWords, ['flair']);
+});
+
+test('uncited cover letter paragraphs flag reach words but not ordinary verbs', () => {
+  const ws = buildDemoWorkspace();
+  const letter = ws.coverLetters[0];
+  assert.ok(c.coverLetterTrace(ws, letter).every(t => t.status === 'traced'), 'demo letter stays clean');
+  const edited = { ...letter, paras: letter.paras.map(p => (p.kind === 'hook' ? { ...p, text: `${p.text} I am an award-winning coordinator.` } : p)) };
+  const hook = c.coverLetterTrace(ws, edited).find(t => t.kind === 'hook');
+  assert.equal(hook.status, 'unsupported');
+  assert.match(hook.issues[0].detail, /award-winning/);
+});
+
+test('the demo STAR answer still passes every check under the scope rule', () => {
+  const ws = buildDemoWorkspace();
+  const s = c.scoreStar(ws.practice[0], ws);
+  assert.equal(s.passed, s.total);
 });

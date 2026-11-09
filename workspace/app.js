@@ -86,6 +86,11 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&
 const evTitle = id => { const e = C.findById(ws.evidence, id); return e ? e.title : 'Deleted evidence'; };
 const statusBadge = s => `<span class="status ${s}">${{ traced: 'Traced', unsupported: 'Check this', untraced: 'No evidence' }[s] || esc(s)}</span>`;
 const issuesList = issues => (issues && issues.length ? `<ul class="issues">${issues.map(i => `<li>${esc(i.detail)}</li>`).join('')}</ul>` : '');
+// Words a line adds on top of its cited evidence. Shown for traced lines too: a line can pass
+// and still say something the evidence does not, which the person should see.
+const groundingNote = g => (g && g.newWords.length
+  ? `<p class="muted small grounding">Not in the cited evidence: ${g.newWords.map(w => `<mark>${esc(w)}</mark>`).join(' ')}</p>`
+  : '');
 const roleLabel = j => `${esc(j.title)} at ${esc(j.company)}`;
 
 function evidenceOptions(exclude = []) {
@@ -315,6 +320,7 @@ function roleResume(job) {
       <label class="small" for="b-${esc(b.id)}" style="position:absolute;left:-9999px">Resume line ${i + 1}</label>
       <textarea id="b-${esc(b.id)}" data-k="b-${esc(b.id)}" data-change="bullet-text" data-v="${esc(v.id)}" data-b="${esc(b.id)}">${esc(b.text)}</textarea>
       ${issuesList(line.issues)}
+      ${groundingNote(line.grounding)}
       ${citeChips(b.evidenceIds, 'uncite', `data-v="${esc(v.id)}" data-b="${esc(b.id)}"`)}
       <div class="row" style="margin-top:6px">
         <select aria-label="Cite evidence for line ${i + 1}" data-change="cite" data-v="${esc(v.id)}" data-b="${esc(b.id)}" style="flex:1;min-width:160px"><option value="">Cite evidence...</option>${evidenceOptions(b.evidenceIds)}</select>
@@ -327,7 +333,7 @@ function roleResume(job) {
     <div class="grid2"><div>
       <div class="card accent">
         <div class="spread"><h3 style="margin:0">Trace check</h3><span>${tr.clean ? '<span class="status traced">Every line traces</span>' : `<span class="status unsupported">${tr.counts.unsupported + tr.counts.untraced} of ${tr.total} need attention</span>`}</span></div>
-        <p class="muted small">A line passes when it cites evidence and every number and credential in it appears in that evidence.</p>
+        <p class="muted small">A line passes when it cites evidence, every number and credential in it appears in that evidence, and it claims no more ownership or reach than the evidence does (for example "led" where the evidence says "helped", or "company-wide" where it does not). Words you added beyond the evidence are marked so you can judge them.</p>
         <label for="v-label">Version name</label><input id="v-label" data-k="v-label" data-change="version-label" data-v="${esc(v.id)}" value="${esc(v.label)}">
         <label for="v-summary">Summary</label><textarea id="v-summary" data-k="v-summary" data-change="version-summary" data-v="${esc(v.id)}">${esc(v.summary)}</textarea>
         ${tr.summary ? `<div style="margin-top:4px">${statusBadge(tr.summary.status)}${issuesList(tr.summary.issues)}</div>` : ''}
@@ -378,7 +384,7 @@ function roleLetter(job) {
   const paras = letter.paras.map((p, i) => `<div class="bullet"><div class="spread"><span class="tag muted">${esc(p.kind)}</span>${statusBadge(tr[i].status)}</div>
       <label for="lp-${i}" style="position:absolute;left:-9999px">Paragraph ${i + 1}</label>
       <textarea id="lp-${i}" data-k="lp-${i}" data-change="letter-para" data-l="${esc(letter.id)}" data-i="${i}" rows="${Math.min(8, Math.ceil(p.text.length / 70) + 1)}">${esc(p.text)}</textarea>
-      ${issuesList(tr[i].issues)}${p.evidenceIds.length ? citeChips(p.evidenceIds) : ''}</div>`).join('');
+      ${issuesList(tr[i].issues)}${groundingNote(tr[i].grounding)}${p.evidenceIds.length ? citeChips(p.evidenceIds) : ''}</div>`).join('');
   const bad = tr.filter(t => t.status !== 'traced').length;
   return `<div class="grid2"><div>${paras}</div><div>
     <div class="card accent"><h3>Check</h3>${bad ? `<p><span class="status unsupported">${bad} paragraph${bad > 1 ? 's' : ''} need attention</span></p>` : '<p><span class="status traced">Every claim traces</span></p>'}
