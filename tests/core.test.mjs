@@ -283,3 +283,58 @@ test('demo workspace: v2 is clean, v1 shows the overreach, nothing is sent', () 
   assert.ok(ws.followUps.every(f => f.status === 'draft'));
   assert.equal(c.findById(ws.jobs, 'job_demo_tallgrass').stage, 'interviewing');
 });
+
+// ---- Review fixes (build/cc-consolidated review of PR #5)
+
+test('a four-digit count is a claim, not a year, unless the words around it say date', () => {
+  const { ws, ev } = smallWs();
+  assert.equal(c.checkClaim('Supported 2000 customers in the queue.', [ev.id], ws).status, 'unsupported');
+  assert.equal(c.checkClaim('Supported 2,000 customers.', [ev.id], ws).status, 'unsupported');
+  for (const dated of ['Since 2019, ran the queue.', 'Ran the queue from 2019 to 2022.', 'Ran the queue in March 2021.', 'Ran the queue (2019 to present).']) {
+    assert.equal(c.checkClaim(dated, [ev.id], ws).status, 'traced', dated);
+  }
+  assert.deepEqual(c.extractNumbers('2019 to 2022').map(n => n.norm), []);
+});
+
+test('plural credential words are credential claims too', () => {
+  const { ws, ev } = smallWs();
+  for (const t of ['Earned two certifications.', 'Holds degrees in operations.', 'Licenses in two states.', 'Earned certificates in support.']) {
+    const r = c.checkClaim(t, [ev.id], ws);
+    assert.equal(r.status, 'unsupported', t);
+    assert.ok(r.issues.some(i => i.kind === 'credential'), t);
+  }
+  const cert = c.addEvidence(ws, { title: 'Support certification', text: 'Passed the support certification exam.' });
+  assert.equal(c.checkClaim('Holds two support certifications.', [cert.id], ws).issues.filter(i => i.kind === 'credential').length, 0);
+});
+
+test('today() is the local calendar date, not the UTC date', () => {
+  const late = new Date(2026, 10, 9, 23, 30); // local 11:30 pm on Nov 9
+  assert.equal(c.today(late), '2026-11-09');
+});
+
+test('a new version after a delete never reuses a live label', () => {
+  const { ws, job } = smallWs();
+  const v1 = c.createResumeVersion(ws, job.id);
+  const v2 = c.createResumeVersion(ws, job.id);
+  c.removeResumeVersion(ws, v1.id);
+  const v3 = c.createResumeVersion(ws, job.id);
+  assert.notEqual(v3.label, v2.label);
+});
+
+test('a damaged import with null and mistyped nested records loads and renders data safely', () => {
+  const bad = {
+    schemaVersion: 1,
+    evidence: [{ id: 'e1', title: 7, text: ['x'], metrics: null }],
+    jobs: [{ id: 'j1', title: 'Role', company: 'Co', history: [null, 'x', { stage: 'nope', date: 3 }] }],
+    resumeVersions: [{ id: 'r1', jobId: 'j1', bullets: [null, { id: 'b', text: 5, evidenceIds: [1, 'e1'] }] }],
+    coverLetters: [{ id: 'c1', jobId: 'j1', paras: [null, { text: null }] }],
+    debriefs: [{ id: 'd1', jobId: 'j1', asked: 4 }],
+  };
+  const { ws } = c.validateWorkspace(bad);
+  assert.deepEqual(ws.jobs[0].history, [{ stage: 'saved', date: '3', note: '' }]);
+  assert.deepEqual(ws.resumeVersions[0].bullets, [{ id: 'b', text: '5', evidenceIds: ['e1'] }]);
+  assert.equal(c.traceReport(ws, 'r1').total, 1);
+  assert.equal(c.coverLetterTrace(ws, ws.coverLetters[0]).length, 1);
+  assert.ok(c.buildPacket(ws, 'j1').markdown.includes('Role at Co'));
+  assert.ok(c.pipelineSummary(ws).nextSteps.length >= 1);
+});

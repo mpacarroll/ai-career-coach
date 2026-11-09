@@ -30,8 +30,11 @@ export function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}${counter.toString(36)}${rand}`;
 }
 
+// The person's local calendar date. toISOString would give the UTC date, which rolls over to
+// tomorrow during a US evening.
 export function today(now = new Date()) {
-  return now.toISOString().slice(0, 10);
+  const p = n => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
 
 function clean(s) {
@@ -193,20 +196,44 @@ export const CREDENTIAL_TERMS = [
   'certified', 'certification', 'certificate', 'licensed', 'license', 'degree', 'bachelor', "bachelor's",
   'master', "master's", 'mba', 'phd', 'doctorate', 'accredited', 'credential', 'diploma', 'pmp', 'cpa',
 ];
-const CRED_RE = new RegExp(`\\b(${CREDENTIAL_TERMS.map(escapeRe).join('|')})\\b`, 'gi');
+// Plurals count too: "two certifications" asserts a credential as much as "certified" does.
+const CRED_RE = new RegExp(`\\b(${CREDENTIAL_TERMS.map(escapeRe).join('|')})(?:s|es)?\\b`, 'gi');
 
-// Pulls quantities out of text: 30%, $1.2M, 1,200, 8, 12 weeks. Bare years (1990 to 2099) are
-// ignored because dates are not claims.
+// The credential words a text asserts, reduced to their singular form.
+function credentialStems(text) {
+  return [...new Set((String(text || '').match(CRED_RE) || []).map(credStem))];
+}
+
+function credStem(w) {
+  const l = w.toLowerCase();
+  if (CREDENTIAL_TERMS.includes(l)) return l;
+  for (const suf of ['es', 's']) {
+    const base = l.slice(0, -suf.length);
+    if (l.endsWith(suf) && CREDENTIAL_TERMS.includes(base)) return base;
+  }
+  return l;
+}
+
+// Pulls quantities out of text: 30%, $1.2M, 1,200, 8, 12 weeks. A plain four-digit year is
+// skipped only when the words around it mark it as a date ("since 2019", "2019 to 2022",
+// "March 2021"). Without that context it is a count, so "served 2000 customers" is checked.
+const DATE_BEFORE = /(?:\b(?:in|since|from|to|until|till|through|by|during|of|circa|early|late|mid|spring|summer|fall|autumn|winter|q[1-4]|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)|[-\u2013\/'(])\s*$/i;
+const DATE_AFTER = /^\s*(?:[-\u2013\/):]|(?:to|through|until|till|and)\s+(?:19|20)\d\d\b|(?:to|until)\s+(?:present|now|today)\b)/i;
+
 export function extractNumbers(text) {
   const t = String(text || '');
   const re = /\$?\d[\d,]*(?:\.\d+)?\s?(?:%|percent|k\b|m\b|million\b|thousand\b)?/gi;
   const out = [];
   let m;
   while ((m = re.exec(t))) {
-    const raw = m[0].trim();
+    const raw = m[0].trim().replace(/,+$/, '');
     const norm = normalizeNumber(raw);
     if (!norm) continue;
-    if (/^(19|20)\d\d$/.test(norm)) continue;
+    if (/^(19|20)\d\d$/.test(raw)) {
+      const before = t.slice(Math.max(0, m.index - 24), m.index);
+      const after = t.slice(m.index + raw.length, m.index + raw.length + 24);
+      if (DATE_BEFORE.test(before) || DATE_AFTER.test(after)) continue;
+    }
     out.push({ raw, norm });
   }
   return out;
@@ -227,7 +254,7 @@ function normalizeNumber(raw) {
 }
 
 function evidenceCorpus(items) {
-  return items.map(e => `${e.title} ${e.org} ${e.text} ${(e.metrics || []).join(' ')}`).join(' \n ');
+  return items.map(e => `${e.title} ${e.org} ${e.start} ${e.end} ${e.text} ${(e.metrics || []).join(' ')}`).join(' \n ');
 }
 
 // Checks one claim against the evidence it cites.
@@ -247,10 +274,9 @@ export function checkClaim(claimText, evidenceIds, ws) {
   for (const n of extractNumbers(claimText)) {
     if (!have.has(n.norm)) issues.push({ kind: 'number', detail: `"${n.raw}" is not in the cited evidence.` });
   }
-  const corpusLower = corpus.toLowerCase();
-  const creds = new Set((String(claimText).match(CRED_RE) || []).map(s => s.toLowerCase()));
-  for (const c of creds) {
-    if (!new RegExp(`\\b${escapeRe(c)}\\b`).test(corpusLower)) issues.push({ kind: 'credential', detail: `"${c}" is a credential claim that the cited evidence does not mention.` });
+  const have2 = new Set(credentialStems(corpus));
+  for (const c of credentialStems(claimText)) {
+    if (!have2.has(c)) issues.push({ kind: 'credential', detail: `"${c}" is a credential claim that the cited evidence does not mention.` });
   }
   return { status: issues.length ? 'unsupported' : 'traced', issues, cited: cited.map(e => e.id) };
 }
@@ -386,7 +412,10 @@ export function suggestBullets(ws, jobId, limit = 6) {
 export function createResumeVersion(ws, jobId, { label, summary, bullets, basedOn } = {}) {
   const job = findById(ws.jobs, jobId);
   if (!job) throw new Error('Pick a role before making a resume version.');
-  const n = ws.resumeVersions.filter(v => v.jobId === jobId).length + 1;
+  // Next free "vN" for this role, so deleting v1 and adding another never yields two v2s.
+  const taken = new Set(ws.resumeVersions.filter(v => v.jobId === jobId).map(v => v.label));
+  let n = ws.resumeVersions.filter(v => v.jobId === jobId).length + 1;
+  while (taken.has(`v${n}`)) n++;
   const v = {
     id: uid('rv'),
     jobId,
@@ -567,7 +596,7 @@ export function coverLetterTrace(ws, letter) {
     if (p.kind === 'proof' || p.evidenceIds.length) return { ...checkClaim(p.text, p.evidenceIds, ws), kind: p.kind };
     const issues = [];
     for (const n of extractNumbers(p.text)) issues.push({ kind: 'number', detail: `"${n.raw}" has no evidence behind it.` });
-    for (const c of new Set((p.text.match(CRED_RE) || []).map(s => s.toLowerCase()))) issues.push({ kind: 'credential', detail: `"${c}" has no evidence behind it.` });
+    for (const c of credentialStems(p.text)) issues.push({ kind: 'credential', detail: `"${c}" has no evidence behind it.` });
     return { status: issues.length ? 'unsupported' : 'traced', issues, cited: [], kind: p.kind };
   });
 }
@@ -825,14 +854,41 @@ export function validateWorkspace(data) {
     if (good.length !== list.length) warnings.push(`Dropped ${list.length - good.length} damaged ${k} record${list.length - good.length > 1 ? 's' : ''}.`);
     ws[k] = good;
   }
-  ws.evidence = ws.evidence.map(normalizeEvidence);
-  ws.jobs = ws.jobs.map(j => ({ ...j, stage: STAGE_IDS.includes(j.stage) ? j.stage : 'saved', history: Array.isArray(j.history) ? j.history : [] }));
-  ws.resumeVersions = ws.resumeVersions.map(v => ({ ...v, bullets: Array.isArray(v.bullets) ? v.bullets.map(b => ({ ...b, evidenceIds: Array.isArray(b.evidenceIds) ? b.evidenceIds : [] })) : [] }));
-  ws.coverLetters = ws.coverLetters.map(c => ({ ...c, paras: Array.isArray(c.paras) ? c.paras.map(p => ({ ...p, evidenceIds: Array.isArray(p.evidenceIds) ? p.evidenceIds : [] })) : [] }));
-  ws.practice = ws.practice.map(p => ({ ...p, evidenceIds: Array.isArray(p.evidenceIds) ? p.evidenceIds : [] }));
-  ws.followUps = ws.followUps.map(f => ({ ...f, status: f.status === 'copied' ? 'copied' : 'draft' }));
+  // Every field the interface reads is coerced to the type it expects, so a hand-edited or
+  // damaged file can lose a value but can never crash the page.
+  ws.evidence = ws.evidence.map(e => normalizeEvidence({ ...e, ...strs(e, ['kind', 'title', 'org', 'start', 'end', 'text']) }));
+  ws.jobs = ws.jobs.map(j => ({
+    ...j, ...strs(j, ['title', 'company', 'location', 'source', 'jd', 'notes', 'contact', 'createdAt']),
+    stage: STAGE_IDS.includes(j.stage) ? j.stage : 'saved',
+    history: objs(j.history).map(h => ({ stage: STAGE_IDS.includes(h.stage) ? h.stage : 'saved', ...strs(h, ['date', 'note']) })),
+  }));
+  ws.resumeVersions = ws.resumeVersions.map(v => ({
+    ...v, ...strs(v, ['jobId', 'label', 'summary', 'createdAt']), basedOn: typeof v.basedOn === 'string' ? v.basedOn : null,
+    bullets: objs(v.bullets).map(b => ({ id: typeof b.id === 'string' ? b.id : uid('b'), ...strs(b, ['text']), evidenceIds: ids(b.evidenceIds) })),
+  }));
+  ws.coverLetters = ws.coverLetters.map(c => ({
+    ...c, ...strs(c, ['jobId', 'updatedAt']), versionId: typeof c.versionId === 'string' ? c.versionId : null,
+    paras: objs(c.paras).map(p => ({ ...strs(p, ['text']), kind: typeof p.kind === 'string' ? p.kind : 'proof', evidenceIds: ids(p.evidenceIds) })),
+  }));
+  ws.practice = ws.practice.map(p => ({ ...p, ...strs(p, ['jobId', 'questionId', 'question', 'situation', 'task', 'action', 'result']), evidenceIds: ids(p.evidenceIds) }));
+  ws.debriefs = ws.debriefs.map(d => ({ ...d, ...strs(d, ['jobId', 'date', 'round', 'interviewer', 'asked', 'wentWell', 'improve', 'followUpPoint']) }));
+  ws.followUps = ws.followUps.map(f => ({ ...f, ...strs(f, ['jobId', 'kind', 'subject', 'body']), status: f.status === 'copied' ? 'copied' : 'draft' }));
   ws.updatedAt = migrated.updatedAt || null;
   return { ws, warnings };
+}
+
+function strs(o, keys) {
+  const r = {};
+  for (const k of keys) r[k] = typeof o[k] === 'string' ? o[k] : o[k] == null ? '' : String(o[k]);
+  return r;
+}
+
+function objs(list) {
+  return Array.isArray(list) ? list.filter(x => x && typeof x === 'object' && !Array.isArray(x)) : [];
+}
+
+function ids(list) {
+  return Array.isArray(list) ? list.filter(x => typeof x === 'string') : [];
 }
 
 function pick(o, keys) {
