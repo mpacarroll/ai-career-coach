@@ -398,7 +398,7 @@ function roleInterview(job) {
   const debriefs = ws.debriefs.filter(d => d.jobId === job.id);
   const evChecks = ws.evidence.map(e => `<label class="small" style="font-weight:400;display:flex;gap:6px;align-items:flex-start;margin:2px 0"><input type="checkbox" name="evidenceIds" value="${esc(e.id)}" ${ans.evidenceIds.includes(e.id) ? 'checked' : ''} style="width:auto;margin-top:3px">${esc(e.title)}</label>`).join('');
   return `<div class="grid2"><div>
-    <div class="card"><h3>Likely questions for this role</h3><p class="muted small">From the skills in the description. Gap questions help you answer honestly about what you have not done yet.</p><ol>${qList}</ol></div>
+    <div class="card"><h3>Likely questions for this role</h3><p class="muted small">From the skills in the description. Gap questions help you answer honestly about what you have not done yet.</p><ol class="qs">${qList}</ol></div>
     <div class="card"><h3>Debriefs</h3>
       ${debriefs.map(d => `<div class="bullet"><b>${esc(d.date)}: ${esc(d.round)}</b>${d.interviewer ? ` with ${esc(d.interviewer)}` : ''}
         ${d.asked ? `<p class="small"><b>Asked:</b> ${esc(d.asked)}</p>` : ''}${d.wentWell ? `<p class="small"><b>Went well:</b> ${esc(d.wentWell)}</p>` : ''}${d.improve ? `<p class="small"><b>Do better:</b> ${esc(d.improve)}</p>` : ''}${d.followUpPoint ? `<p class="small"><b>To mention in a thank-you:</b> ${esc(d.followUpPoint)}</p>` : ''}</div>`).join('') || '<p class="muted">After each interview, write down what happened while it is fresh.</p>'}

@@ -612,7 +612,7 @@ export function generateQuestions(ws, jobId) {
     qs.push({ id: `q_${slug(r.skill)}`, skill: r.skill, text: QUESTION_BANK[r.skill], kind: r.covered ? 'strength' : 'gap', suggestedEvidence: r.evidence.slice(0, 2) });
   }
   for (const g of fit.gaps.slice(0, 2)) {
-    qs.push({ id: `q_gap_${slug(g)}`, skill: g, text: `This role needs ${g.toLowerCase()}. What have you done that comes closest, and how would you get up to speed?`, kind: 'gap', suggestedEvidence: [] });
+    qs.push({ id: `q_gap_${slug(g)}`, skill: g, text: `This role needs ${softLower(g)}. What have you done that comes closest, and how would you get up to speed?`, kind: 'gap', suggestedEvidence: [] });
   }
   qs.push({ id: 'q_why', skill: 'Motivation', text: `Why ${findById(ws.jobs, jobId).company}, and why this role now?`, kind: 'motivation', suggestedEvidence: [] });
   const seen = new Set();

@@ -41,3 +41,12 @@ Durable, repo-specific context lives here and in `.claude/rules/`. Architecture 
 In-flight task state is separate: it lives in `.claude/state/handoff.md`, written by any session that stops mid-task (the injected Coordination rules make this automatic) and injected into the next session by the plugin's SessionStart hook. Durable facts here, current-task state there.
 
 <!-- repo-knowledge: content below this line is preserved by sync-repo.sh -->
+
+### Job Search Workspace (added 2026-11-09)
+
+- `workspace/` is a second page, separate from `tool/`. `tool/` keeps its "nothing saved or sent" promise unchanged. `workspace/` saves to `localStorage` under `jobcoach.workspace.v1` on the user's device only; nothing is sent. This departs from the PROFILE.md line "Do not add storage"; it is local-only, exportable and erasable, and the choice is flagged for the owner in the PR.
+- All logic is in `workspace/core.js` (pure, Node-testable). `app.js` only renders and wires events. Keep that split; put new rules in core with a unit test.
+- The trace rule (`checkClaim`) is the product's spine: numbers and credential words in a claim must appear in the cited evidence. Do not add any generator that introduces words, numbers or credentials the user did not write.
+- Schema changes: bump `SCHEMA_VERSION`, add a step in `migrate()`, and add a test that loads the old shape.
+- Re-renders triggered by blur are deferred until pointerup (`scheduleRender`) so the click that caused the blur is not swallowed. Keep inline edits on `change`, not `input`.
+- Tests: `npm test` (unit) and `npm run test:e2e` (Playwright, uses the preinstalled Chromium). Demo data is synthetic; keep it that way.
