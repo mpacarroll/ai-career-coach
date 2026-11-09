@@ -257,6 +257,153 @@ function evidenceCorpus(items) {
   return items.map(e => `${e.title} ${e.org} ${e.start} ${e.end} ${e.text} ${(e.metrics || []).join(' ')}`).join(' \n ');
 }
 
+// ---------------------------------------------------------------- scope check
+//
+// Numbers and credentials are not the only way a line can say more than the person did.
+// "Led" where the evidence says "helped", "founded" where it says "redesigned", "company-wide"
+// where it says "for my team": each one claims more ownership or reach than the evidence holds.
+//
+// Ladders: a claim word needs an evidence word from the same ladder at the same rung or higher.
+// Exact words (reach, recognition): a claim word needs that same word in the evidence.
+// A ladder word in the evidence that follows "helped", "assisted" or similar does not count,
+// because "helped lead onboarding" is support, not leadership.
+
+export const SCOPE_LADDERS = [
+  {
+    id: 'ownership',
+    noun: 'ownership',
+    rungs: [
+      ['ran', 'run', 'runs', 'owned', 'drove'],
+      ['led', 'lead', 'leads', 'leading', 'headed', 'directed', 'spearheaded', 'oversaw', 'oversee', 'oversees', 'supervised', 'supervise', 'supervises', 'managed', 'manage', 'manages', 'orchestrated', 'championed', 'responsible for', 'in charge of', 'accountable for'],
+    ],
+  },
+  {
+    id: 'creation',
+    noun: 'authorship',
+    rungs: [
+      ['built', 'created', 'designed', 'developed', 'launched', 'introduced', 'redesigned', 'wrote', 'authored', 'set up'],
+      ['founded', 'pioneered', 'invented', 'architected', 'established', 'co-founded'],
+    ],
+  },
+];
+
+export const SCOPE_EXACT = [
+  'company-wide', 'companywide', 'organization-wide', 'org-wide', 'enterprise-wide', 'statewide', 'nationwide', 'national', 'nationally',
+  'global', 'globally', 'international', 'internationally', 'entire', 'single-handedly', 'singlehandedly', 'sole', 'solely', 'first-ever',
+  'award', 'awards', 'awarded', 'award-winning', 'promoted', 'promotion', 'record-breaking', 'recognized', 'honored', 'ranked',
+  'top performer', 'top-performing', 'best-in-class', 'expert', 'executive', 'senior',
+];
+
+const SUPPORT_BEFORE = /\b(?:helped|help|helping|assisted|assist|assisting|supported|supporting|contributed to|participated in|part of|was part of|with help from)\s+(?:to\s+|in\s+|with\s+)?$/i;
+
+function phraseRe(list) {
+  return new RegExp(`(^|[^a-z0-9-])(${[...list].sort((a, b) => b.length - a.length).map(escapeRe).join('|')})(?=$|[^a-z0-9-])`, 'gi');
+}
+
+const LADDER_RES = SCOPE_LADDERS.map(l => ({
+  ...l,
+  re: phraseRe(l.rungs.flat()),
+  rungOf: Object.fromEntries(l.rungs.flatMap((r, i) => r.map(w => [w, i]))),
+}));
+const EXACT_RE = phraseRe(SCOPE_EXACT);
+const ANY_WIDE = /(^|[^a-z0-9-])([a-z]+-wide)(?=$|[^a-z0-9-])/gi;
+
+// [{ word, index }] for every match of re in text, skipping those right after a support phrase
+// when skipSupported is set.
+function scan(re, text, skipSupported) {
+  const out = [];
+  const t = String(text || '');
+  re.lastIndex = 0;
+  let m;
+  while ((m = re.exec(t))) {
+    const index = m.index + m[1].length;
+    if (skipSupported && SUPPORT_BEFORE.test(t.slice(Math.max(0, index - 40), index))) continue;
+    out.push({ word: m[2].toLowerCase(), index });
+  }
+  return out;
+}
+
+// Highest rung the text reaches on each ladder: { ownership: 1, creation: 0 } (missing = none).
+function ladderTops(text, skipSupported) {
+  const tops = {};
+  for (const l of LADDER_RES) {
+    for (const { word } of scan(l.re, text, skipSupported)) {
+      const r = l.rungOf[word];
+      if (tops[l.id] == null || r > tops[l.id]) tops[l.id] = r;
+    }
+  }
+  return tops;
+}
+
+function exactWords(text) {
+  return new Set([...scan(EXACT_RE, text, false), ...scan(ANY_WIDE, text, false)].map(x => x.word));
+}
+
+// Scope issues for one claim against the combined text of its cited evidence.
+// With no evidence text at all, every ladder or reach word is an issue.
+export function scopeIssues(claimText, evidenceText) {
+  const issues = [];
+  const have = ladderTops(evidenceText, true);
+  const claimed = new Set();
+  for (const l of LADDER_RES) {
+    for (const { word } of scan(l.re, claimText, false)) {
+      const need = l.rungOf[word];
+      if (claimed.has(word)) continue;
+      claimed.add(word);
+      if (have[l.id] == null || have[l.id] < need) {
+        const shown = word.charAt(0).toUpperCase() + word.slice(1);
+        issues.push({
+          kind: 'scope',
+          word,
+          detail: have[l.id] == null
+            ? `"${shown}" claims ${l.noun} the cited evidence does not describe. If you did, say so in that evidence item.`
+            : `"${shown}" claims more ${l.noun} than the cited evidence, which describes a smaller part. Use the evidence's own verb, or update the evidence if it undersells you.`,
+        });
+      }
+    }
+  }
+  const evExact = exactWords(evidenceText);
+  for (const w of exactWords(claimText)) {
+    if (!evExact.has(w)) issues.push({ kind: 'scope', word: w, detail: `"${w}" claims reach or recognition the cited evidence does not mention.` });
+  }
+  return issues;
+}
+
+// ---------------------------------------------------------------- grounding
+//
+// Informational, never a failure: which words in a line the person added on top of the evidence
+// it cites. Small connecting words and common resume verbs are ignored.
+
+const STOPWORDS = new Set(('a an the and or but if of to in on at by for with from into onto over under about across after '
+  + 'before during within without through per via as than then that this these those it its is are was were be been being '
+  + 'has have had do does did i me my we our us you your they their them he she his her who whom which what when where why how '
+  + 'all any each every more most some such no not only own same so too very can will just also new up out first one two three '
+  + 'make made making get got getting use used using work worked working help helped helping').split(' '));
+
+function stem(w) {
+  return w.replace(/'s$/, '').replace(/ies$/, 'y').replace(/(?<=[a-z]{3})(ing|ed|es|s)$/, '').replace(/(?<=[a-z]{3})e$/, '');
+}
+
+function contentWords(text) {
+  return (String(text || '').toLowerCase().match(/[a-z][a-z'-]*[a-z]|[a-z]/g) || []).filter(w => w.length >= 3 && !STOPWORDS.has(w));
+}
+
+// { newWords: ['turnaround'], share: 0.8 } where share is the fraction of content words found
+// in the evidence. share is null when the line has no content words.
+export function groundingReport(claimText, evidenceText) {
+  const have = new Set(contentWords(evidenceText).map(stem));
+  const words = contentWords(claimText);
+  const seen = new Set();
+  const newWords = [];
+  let found = 0;
+  for (const w of words) {
+    const s = stem(w);
+    if (have.has(s)) found++;
+    else if (!seen.has(s)) { seen.add(s); newWords.push(w); }
+  }
+  return { newWords, share: words.length ? Math.round((found / words.length) * 100) / 100 : null };
+}
+
 // Checks one claim against the evidence it cites.
 // status: 'traced' (all good), 'unsupported' (cites evidence, but a number or credential is not in it),
 //         'untraced' (cites nothing, or cites evidence that has been deleted).
@@ -278,7 +425,8 @@ export function checkClaim(claimText, evidenceIds, ws) {
   for (const c of credentialStems(claimText)) {
     if (!have2.has(c)) issues.push({ kind: 'credential', detail: `"${c}" is a credential claim that the cited evidence does not mention.` });
   }
-  return { status: issues.length ? 'unsupported' : 'traced', issues, cited: cited.map(e => e.id) };
+  issues.push(...scopeIssues(claimText, corpus));
+  return { status: issues.length ? 'unsupported' : 'traced', issues, cited: cited.map(e => e.id), grounding: groundingReport(claimText, corpus) };
 }
 
 // ---------------------------------------------------------------- jobs and fit
@@ -597,6 +745,9 @@ export function coverLetterTrace(ws, letter) {
     const issues = [];
     for (const n of extractNumbers(p.text)) issues.push({ kind: 'number', detail: `"${n.raw}" has no evidence behind it.` });
     for (const c of credentialStems(p.text)) issues.push({ kind: 'credential', detail: `"${c}" has no evidence behind it.` });
+    // Ladder verbs are left alone here ("clinics are run by front-desk staff" is not a claim);
+    // reach and recognition words are claims wherever they appear.
+    for (const w of exactWords(p.text)) issues.push({ kind: 'scope', word: w, detail: `"${w}" has no evidence behind it. Make that claim in a proof paragraph that cites evidence.` });
     return { status: issues.length ? 'unsupported' : 'traced', issues, cited: [], kind: p.kind };
   });
 }

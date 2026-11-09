@@ -47,6 +47,8 @@ In-flight task state is separate: it lives in `.claude/state/handoff.md`, writte
 - `workspace/` is a second page, separate from `tool/`. `tool/` keeps its "nothing saved or sent" promise unchanged. `workspace/` saves to `localStorage` under `jobcoach.workspace.v1` on the user's device only; nothing is sent. This departs from the PROFILE.md line "Do not add storage"; it is local-only, exportable and erasable, and the choice is flagged for the owner in the PR.
 - All logic is in `workspace/core.js` (pure, Node-testable). `app.js` only renders and wires events. Keep that split; put new rules in core with a unit test.
 - The trace rule (`checkClaim`) is the product's spine: numbers and credential words in a claim must appear in the cited evidence. Do not add any generator that introduces words, numbers or credentials the user did not write.
+- The scope check (`scopeIssues`, `SCOPE_LADDERS`, `SCOPE_EXACT`) is part of `checkClaim`. Ladders compare rungs; exact words must appear verbatim. Uncited cover-letter paragraphs check only exact reach words, because ordinary verbs there ("clinics are run by") are not claims. `groundingReport` is informational only: never let it fail a line.
+- Numbers: a bare 19xx/20xx is skipped as a year only with date context nearby (`DATE_BEFORE`/`DATE_AFTER`); otherwise it is a count and must trace.
 - Schema changes: bump `SCHEMA_VERSION`, add a step in `migrate()`, and add a test that loads the old shape.
 - Re-renders triggered by blur are deferred until pointerup (`scheduleRender`) so the click that caused the blur is not swallowed. Keep inline edits on `change`, not `input`.
 - Tests: `npm test` (unit) and `npm run test:e2e` (Playwright, uses the preinstalled Chromium). Demo data is synthetic; keep it that way.

@@ -76,8 +76,9 @@ export function buildDemoWorkspace() {
 
   moveStage(ws, job.id, 'tailoring', { date: '2026-10-20', note: 'Started tailoring from the evidence library' });
 
-  // v1: the first pass, before the trace check. One line overreaches: "40%" and "certified"
-  // are not in any evidence the user wrote. The trace report flags both.
+  // v1: the first pass, before the trace check. Two lines overreach. "40%" and "certified" are
+  // not in any evidence the user wrote. "Founded" and "school-wide" claim more ownership and
+  // reach than the evidence, which says the user redesigned a workflow. The trace report flags all four.
   const v1 = createResumeVersion(ws, job.id, {
     label: 'v1 first pass',
     summary: 'Organized school operations coordinator with a background in teaching.',
@@ -86,6 +87,7 @@ export function buildDemoWorkspace() {
       { text: 'Handled parent complaints and escalations at the front desk.', evidenceIds: [e2.id] },
       { text: 'Certified trainer who ran workshops that improved adoption 40%.', evidenceIds: [e3.id] },
       { text: 'Taught a class of 28 students.', evidenceIds: [e4.id] },
+      { text: 'Founded a school-wide supply ordering program that saved about 4 hours a week.', evidenceIds: [e1.id] },
     ],
   });
 
