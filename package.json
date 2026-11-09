@@ -1,0 +1,11 @@
+{
+  "name": "ai-career-coach",
+  "private": true,
+  "description": "Job Coach static site. No build step and no dependencies; this file only names the test commands.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "node tests/e2e/workspace.e2e.mjs",
+    "serve": "node tests/e2e/serve.mjs"
+  }
+}
